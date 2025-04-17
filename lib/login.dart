@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:app_st/forgetpassword.dart';
+import 'package:app_st/profile_screen.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -18,12 +19,15 @@ class _LoginPageState extends State<LoginPage> {
     );
 
     if (response.user != null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Connecté avec succès')));
-      // Ici, navigue vers la page d'accueil ou la page souhaitée après connexion
+      // Connexion réussie, navigation vers ProfileScreen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => ViceDoyenProfileScreen()),
+      );
     } else {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Erreur de connexion')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erreur de connexion')));
     }
   }
 
@@ -74,10 +78,7 @@ class _LoginPageState extends State<LoginPage> {
                 // Slogan ou sous-titre
                 Text(
                   "Plateforme de gestion académique",
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.white70,
-                  ),
+                  style: TextStyle(fontSize: 18, color: Colors.white70),
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: 30),
