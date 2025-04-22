@@ -11,15 +11,48 @@ class ViceDoyenProfileScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: const Text("Profil Vice-Doyen"),
+        title: const Text(
+          "Profil Vice-Doyen",
+          style: TextStyle(color: Colors.white),
+        ),
         centerTitle: true,
-        backgroundColor: Colors.indigo[700],
+        backgroundColor: Colors.blue.shade900,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.blue.shade900,
+              ),
+              child: const Text(
+                'Menu',
+                style: TextStyle(color: Colors.white, fontSize: 24),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.add),
+              title: const Text("Ajouter un Dossier d'Habilitation"),
+              onTap: () {
+                Navigator.pushNamed(context, '/ajouter-dossier');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.school),
+              title: const Text("Ajouter une Soutenance"),
+              onTap: () {
+                Navigator.pushNamed(context, '/ajouter-soutenance');
+              },
+            ),
+          ],
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            // Photo + nom
             CircleAvatar(
               radius: 50,
               backgroundImage: AssetImage("assets/images/vice_doyen.jpg"),
@@ -34,9 +67,7 @@ class ViceDoyenProfileScreen extends StatelessWidget {
               poste,
               style: TextStyle(fontSize: 16, color: Colors.grey[700]),
             ),
-
             const SizedBox(height: 20),
-            // Card infos
             Card(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -47,13 +78,13 @@ class ViceDoyenProfileScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     ListTile(
-                      leading: const Icon(Icons.email),
+                      leading: const Icon(Icons.email, color: Colors.blue),
                       title: const Text("Email"),
                       subtitle: Text(email),
                     ),
                     const Divider(),
                     ListTile(
-                      leading: const Icon(Icons.phone),
+                      leading: const Icon(Icons.phone, color: Colors.blue),
                       title: const Text("Téléphone"),
                       subtitle: Text(telephone),
                     ),
@@ -61,15 +92,12 @@ class ViceDoyenProfileScreen extends StatelessWidget {
                 ),
               ),
             ),
-
             const Spacer(),
-
-            // Button ajouter dossier
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 136, 138, 146),
+                  backgroundColor: Colors.blue.shade700,git add. 
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
