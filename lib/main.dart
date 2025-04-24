@@ -1,6 +1,9 @@
 import 'package:app_st/getstarted.dart' show GetStartedPage;
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/material.dart';
+import '/liste_soutenances.dart';
+import 'fs.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

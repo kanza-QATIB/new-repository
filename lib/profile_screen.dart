@@ -43,7 +43,7 @@ class ViceDoyenProfileScreen extends StatelessWidget {
               leading: const Icon(Icons.school),
               title: const Text("Ajouter une Soutenance"),
               onTap: () {
-                Navigator.pushNamed(context, '/ajouter-soutenance');
+                Navigator.pushNamed(context, '/fs');
               },
             ),
           ],
@@ -97,7 +97,7 @@ class ViceDoyenProfileScreen extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade700,git add. 
+                  backgroundColor: Colors.blue.shade700,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
