@@ -1,3 +1,4 @@
+import 'package:app_st/ajouter_dossier_screen.dart';
 import 'package:flutter/material.dart';
 
 class ViceDoyenProfileScreen extends StatelessWidget {
@@ -24,9 +25,7 @@ class ViceDoyenProfileScreen extends StatelessWidget {
           padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue.shade900,
-              ),
+              decoration: BoxDecoration(color: Colors.blue.shade900),
               child: const Text(
                 'Menu',
                 style: TextStyle(color: Colors.white, fontSize: 24),
@@ -36,7 +35,12 @@ class ViceDoyenProfileScreen extends StatelessWidget {
               leading: const Icon(Icons.add),
               title: const Text("Ajouter un Dossier d'Habilitation"),
               onTap: () {
-                Navigator.pushNamed(context, '/ajouter-dossier');
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AjouterDossierScreen(),
+                  ),
+                );
               },
             ),
             ListTile(
