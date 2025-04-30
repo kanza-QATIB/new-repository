@@ -1,7 +1,8 @@
+// ignore_for_file: collection_methods_unrelated_type
+
 import 'package:flutter/material.dart';
 import '../soutenance.dart';
 import 'fs.dart';
-import '../pdf_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ListeSoutenances extends StatefulWidget {
@@ -11,6 +12,7 @@ class ListeSoutenances extends StatefulWidget {
 
 class _ListeSoutenancesState extends State<ListeSoutenances> {
   List<Soutenance> soutenances = [];
+  Map<int, String> statusMap = {}; // id : 'accepte' / 'refuse'
 
   void ajouterOuModifier(Soutenance? s) async {
     final result = await Navigator.push(
@@ -32,6 +34,16 @@ class _ListeSoutenancesState extends State<ListeSoutenances> {
   void supprimerSoutenance(Soutenance s) {
     setState(() {
       soutenances.removeWhere((x) => x.id == s.id);
+      statusMap.remove(s.id);
+    });
+  }
+
+  void setStatut(Soutenance s, String status) {
+    setState(() {
+      // ignore: collection_methods_unrelated_type
+      var s2 = s;
+  Map<String, String> statusMap = {};
+
     });
   }
 
@@ -62,10 +74,26 @@ class _ListeSoutenancesState extends State<ListeSoutenances> {
         itemCount: soutenances.length,
         itemBuilder: (context, index) {
           final s = soutenances[index];
+          final now = DateTime.now();
+          final isPast = s.dateSoutenance.isBefore(now);
+          final status = statusMap[s.id];
           final formattedDate = "${s.dateSoutenance.day.toString().padLeft(2, '0')}-${s.dateSoutenance.month.toString().padLeft(2, '0')}-${s.dateSoutenance.year}";
+
+          // Badge dynamique
+          Widget badge;
+          if (!isPast) {
+            badge = _buildBadge("⏳ Pas encore passé", Colors.orange);
+          } else if (status == "accepte") {
+            badge = _buildBadge("✔ Terminé", Colors.green);
+          } else if (status == "refuse") {
+            badge = _buildBadge("❌ Refusé", Colors.red);
+          } else {
+            badge = _buildBadge("🕓 En attente", Colors.grey);
+          }
+
           return Card(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            color: index % 2 == 0 ? Colors.white : Color(0xFFFDF0F0),
+            color: Colors.white,
             elevation: 4,
             margin: const EdgeInsets.symmetric(vertical: 10),
             child: Padding(
@@ -86,31 +114,19 @@ class _ListeSoutenancesState extends State<ListeSoutenances> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: index % 2 == 0 ? Colors.green[100] : Colors.indigo[100],
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          index % 2 == 0 ? "✔ Terminé" : "📅 Début : $formattedDate",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: index % 2 == 0 ? Colors.green : Colors.indigo,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
+                      badge,
                       PopupMenuButton(
                         onSelected: (value) {
                           if (value == 'edit') ajouterOuModifier(s);
                           if (value == 'delete') supprimerSoutenance(s);
-                          if (value == 'pdf') generateAvisSoutenancePdf(context, s);
+                          if (value == 'accepte') setStatut(s, 'accepte');
+                          if (value == 'refuse') setStatut(s, 'refuse');
                         },
                         itemBuilder: (_) => [
                           PopupMenuItem(value: 'edit', child: Text("Modifier")),
                           PopupMenuItem(value: 'delete', child: Text("Supprimer")),
-                          PopupMenuItem(value: 'pdf', child: Text("PDF")),
+                          PopupMenuItem(value: 'accepte', child: Text("Accepter")),
+                          PopupMenuItem(value: 'refuse', child: Text("Refuser")),
                         ],
                         icon: Icon(Icons.more_vert, color: Colors.grey[700]),
                       ),
@@ -126,6 +142,24 @@ class _ListeSoutenancesState extends State<ListeSoutenances> {
         backgroundColor: Colors.indigo,
         child: Icon(Icons.add),
         onPressed: () => ajouterOuModifier(null),
+      ),
+    );
+  }
+
+  Widget _buildBadge(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: color,
+          fontSize: 13,
+        ),
       ),
     );
   }

@@ -18,26 +18,33 @@ Future<void> generateAvisSoutenancePdf(BuildContext context, Soutenance s) async
           pw.Text("Faculté des Sciences et Techniques - Beni Mellal", style: pw.TextStyle(fontSize: 18)),
           pw.SizedBox(height: 20),
           pw.Text("Avis de soutenance"),
-          pw.Text("Professeur : ${s.professeur}"),
-          pw.Text("Lieu : ${s.lieu}"),
-          pw.Text("Date : ${s.date.day}/${s.date.month}/${s.date.year}"),
+          pw.Text("Nom du professeur : ${s.nomProfesseur}"), // Aligné avec 'nom_prof'
+          pw.Text("Lieu de soutenance : ${s.lieuSoutenance}"), // Aligné avec 'lieu_soutenance'
+          pw.Text("Date de soutenance : ${s.dateSoutenance.day}/${s.dateSoutenance.month}/${s.dateSoutenance.year}"), // Aligné avec 'date_soutenance'
         ],
       ),
     ),
   );
 
+  // Créer le fichier PDF
   final dir = await getTemporaryDirectory();
   final file = File("${dir.path}/avis_soutenance.pdf");
   await file.writeAsBytes(await pdf.save());
 
+  // Configurer le serveur SMTP
   final smtpServer = gmail('ton.email@gmail.com', 'motDePasseApplication');
   final message = Message()
     ..from = Address('ton.email@gmail.com', 'Vice-Doyen')
-    ..recipients.add(s.email)
+    ..recipients.add(s.email) // Utilisation de la colonne 'email'
     ..subject = 'Avis de soutenance'
     ..text = 'Bonjour, veuillez trouver l’avis de soutenance en pièce jointe.'
     ..attachments = [FileAttachment(file)];
 
+  // Envoyer l'e-mail
   await send(message, smtpServer);
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("E-mail envoyé à ${s.email}")));
+
+  // Afficher un message de confirmation
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text("E-mail envoyé à ${s.email}")),
+  );
 }
