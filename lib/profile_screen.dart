@@ -47,7 +47,7 @@ class ViceDoyenProfileScreen extends StatelessWidget {
   leading: const Icon(Icons.list),
   title: const Text("Voir les soutenances"),
   onTap: () {
-    Navigator.pushNamed(context, '/liste-soutenances');
+    Navigator.pushNamed(context, '/liste_soutenances_screen');
   },
 ),
 

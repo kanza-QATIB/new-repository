@@ -1,5 +1,4 @@
-// ignore_for_file: collection_methods_unrelated_type
-
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import '../soutenance.dart';
 import 'fs.dart';
@@ -9,10 +8,9 @@ class ListeSoutenances extends StatefulWidget {
   @override
   _ListeSoutenancesState createState() => _ListeSoutenancesState();
 }
-
+ 
 class _ListeSoutenancesState extends State<ListeSoutenances> {
   List<Soutenance> soutenances = [];
-  Map<int, String> statusMap = {}; // id : 'accepte' / 'refuse'
 
   void ajouterOuModifier(Soutenance? s) async {
     final result = await Navigator.push(
@@ -23,7 +21,9 @@ class _ListeSoutenancesState extends State<ListeSoutenances> {
       setState(() {
         if (s != null) {
           final index = soutenances.indexWhere((x) => x.id == s.id);
-          soutenances[index] = result;
+          if (index != -1) {
+            soutenances[index] = result;
+          }
         } else {
           soutenances.add(result);
         }
@@ -31,28 +31,84 @@ class _ListeSoutenancesState extends State<ListeSoutenances> {
     }
   }
 
-  void supprimerSoutenance(Soutenance s) {
-    setState(() {
-      soutenances.removeWhere((x) => x.id == s.id);
-      statusMap.remove(s.id);
-    });
+  void supprimerSoutenance(Soutenance s) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Confirmation"),
+        content: Text("Voulez-vous vraiment supprimer cette soutenance ?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text("Annuler"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: Text("Supprimer"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    final response = await Supabase.instance.client
+        .from('soutenance')
+        .delete()
+        .eq('id', s.id)
+        .execute();
+
+    if (response.data != null) {
+      setState(() {
+        soutenances.removeWhere((x) => x.id == s.id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Soutenance supprimée avec succès')),
+      );
+    } else {
+      if (kDebugMode) {
+        print('Erreur de suppression: ${response.error?.message}');
+      }
+    }
   }
 
-  void setStatut(Soutenance s, String status) {
-    setState(() {
-      // ignore: collection_methods_unrelated_type
-      var s2 = s;
-  Map<String, String> statusMap = {};
+  void setStatut(Soutenance s, String status) async {
+    final response = await Supabase.instance.client
+        .from('soutenance')
+        .update({'statut': status})
+        .eq('id', s.id)
+        .execute();
 
-    });
+    if (response.data != null) {
+      setState(() {
+        s.statut = status;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Statut changé en ${status == 'accepte' ? 'Accepté' : 'Refusé'}',
+          ),
+        ),
+      );
+    } else {
+      print("Erreur de mise à jour du statut: ${response.error?.message}");
+    }
   }
 
   Future<void> chargerSoutenances() async {
-    final response = await Supabase.instance.client.from('soutenance').select();
-    final data = response as List<dynamic>;
-    setState(() {
-      soutenances = data.map((row) => Soutenance.fromMap(row)).toList();
-    });
+    final response =
+        await Supabase.instance.client.from('soutenance').select().execute();
+
+    if (response.data != null) {
+      final data = response.data as List<dynamic>;
+      setState(() {
+        soutenances = data.map((row) => Soutenance.fromMap(row)).toList();
+      });
+    } else {
+      print("Erreur de chargement: ${response.error?.message}");
+    }
   }
 
   @override
@@ -76,15 +132,15 @@ class _ListeSoutenancesState extends State<ListeSoutenances> {
           final s = soutenances[index];
           final now = DateTime.now();
           final isPast = s.dateSoutenance.isBefore(now);
-          final status = statusMap[s.id];
-          final formattedDate = "${s.dateSoutenance.day.toString().padLeft(2, '0')}-${s.dateSoutenance.month.toString().padLeft(2, '0')}-${s.dateSoutenance.year}";
+          final status = s.statut;
+          final formattedDate =
+              "${s.dateSoutenance.day.toString().padLeft(2, '0')}-${s.dateSoutenance.month.toString().padLeft(2, '0')}-${s.dateSoutenance.year}";
 
-          // Badge dynamique
           Widget badge;
           if (!isPast) {
             badge = _buildBadge("⏳ Pas encore passé", Colors.orange);
           } else if (status == "accepte") {
-            badge = _buildBadge("✔ Terminé", Colors.green);
+            badge = _buildBadge("✔ Accepté", Colors.green);
           } else if (status == "refuse") {
             badge = _buildBadge("❌ Refusé", Colors.red);
           } else {
@@ -92,7 +148,9 @@ class _ListeSoutenancesState extends State<ListeSoutenances> {
           }
 
           return Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
             color: Colors.white,
             elevation: 4,
             margin: const EdgeInsets.symmetric(vertical: 10),
@@ -123,10 +181,22 @@ class _ListeSoutenancesState extends State<ListeSoutenances> {
                           if (value == 'refuse') setStatut(s, 'refuse');
                         },
                         itemBuilder: (_) => [
-                          PopupMenuItem(value: 'edit', child: Text("Modifier")),
-                          PopupMenuItem(value: 'delete', child: Text("Supprimer")),
-                          PopupMenuItem(value: 'accepte', child: Text("Accepter")),
-                          PopupMenuItem(value: 'refuse', child: Text("Refuser")),
+                          PopupMenuItem(
+                            value: 'edit',
+                            child: Text("Modifier"),
+                          ),
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Text("Supprimer"),
+                          ),
+                          PopupMenuItem(
+                            value: 'accepte',
+                            child: Text("Accepter"),
+                          ),
+                          PopupMenuItem(
+                            value: 'refuse',
+                            child: Text("Refuser"),
+                          ),
                         ],
                         icon: Icon(Icons.more_vert, color: Colors.grey[700]),
                       ),
@@ -163,4 +233,8 @@ class _ListeSoutenancesState extends State<ListeSoutenances> {
       ),
     );
   }
+}
+
+extension on PostgrestResponse {
+  get error => null;
 }
