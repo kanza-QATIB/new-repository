@@ -13,18 +13,20 @@ void main() async {
   );
   runApp(MyApp());
 }
+
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'App de Connexion',
+      debugShowCheckedModeBanner: false,
       home: GetStartedPage(),
       routes: {
         '/fs':
             (context) =>
                 const FormulaireSoutenance(), // Route pour la page de soutenance
 
-        '/liste_soutenances_screen': (context) => ListeSoutenances(), // Idem
+        '/liste-soutenances': (context) => ListeSoutenances(), // Idem
         // Ajoute ici toutes tes autres routes nécessaires
       },
     );

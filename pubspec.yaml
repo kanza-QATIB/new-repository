@@ -34,20 +34,20 @@ dependencies:
   supabase_flutter: ^1.10.8
   pdf: ^3.10.7
   printing: ^5.12.0
-
-  # Pour l'envoi d'e-mails
+  url_launcher: ^6.0.0
+  flutter_pdfview: ^1.0.0
   mailer: ^6.0.1
-
-  # Pour sauvegarder temporairement le fichier PDF
   path_provider: ^2.1.2
-
-  # Pour générer des identifiants uniques
   uuid: ^4.2.2
+  cupertino_icons: ^1.0.8
+  file_picker: ^10.1.2
+  rive: ^0.12.4
+  flutter_animate: ^4.5.0
+  particles_flutter: ^0.1.0
+  google_fonts: ^6.1.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.8
-  file_picker: ^10.1.2
 dev_dependencies:
   flutter_test:
     sdk: flutter
