@@ -8,6 +8,7 @@ class Soutenance {
   String jury3;
   String? email; // Colonne facultative
   DateTime? dateNaissance; // Colonne facultative
+    String? statut; // nullable si parfois vide
 
   Soutenance({
     required this.id,
@@ -19,6 +20,7 @@ class Soutenance {
     required this.jury3,
     this.email,
     this.dateNaissance,
+     this.statut,
   });
 
   // Méthode pour convertir un objet Soutenance en un Map pour insertion dans Supabase
@@ -33,6 +35,7 @@ class Soutenance {
       'jury3': jury3,
       'email': email,
       'date_naissance': dateNaissance?.toIso8601String(),
+      'statut': map['statut'],
     };
   }
 
@@ -54,4 +57,10 @@ class Soutenance {
   }
 
   String? get nomProf => null;
+  
+  get map => null;
+  Soutenance copyWith({required String statut}) {
+    throw UnimplementedError('Fonction copyWith non implémentée.');
+}
+
 }

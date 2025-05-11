@@ -1,7 +1,7 @@
 import 'package:app_st/getstarted.dart' show GetStartedPage;
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '/liste_soutenances.dart';
+import '/liste_soutenances_screen.dart';
 import 'fs.dart';
 
 void main() async {
@@ -13,12 +13,10 @@ void main() async {
   );
   runApp(MyApp());
 }
-
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
       title: 'App de Connexion',
       home: GetStartedPage(),
       routes: {
@@ -26,7 +24,7 @@ class MyApp extends StatelessWidget {
             (context) =>
                 const FormulaireSoutenance(), // Route pour la page de soutenance
 
-        '/liste-soutenances': (context) => ListeSoutenances(), // Idem
+        '/liste_soutenances_screen': (context) => ListeSoutenances(), // Idem
         // Ajoute ici toutes tes autres routes nécessaires
       },
     );

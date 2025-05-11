@@ -49,6 +49,88 @@ class ViceDoyenProfileScreen extends StatelessWidget {
                   color: primaryColor,
                   borderRadius: BorderRadius.vertical(
                     bottom: Radius.circular(30),
+            ListTile(
+              leading: const Icon(Icons.add),
+              title: const Text("Ajouter un Dossier d'Habilitation"),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AjouterDossierScreen(),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+  leading: const Icon(Icons.list),
+  title: const Text("Voir les soutenances"),
+  onTap: () {
+    Navigator.pushNamed(context, '/liste_soutenances_screen');
+  },
+),
+
+            ListTile(
+              leading: const Icon(Icons.school),
+              title: const Text("Ajouter une Soutenance"),
+              onTap: () {
+                Navigator.pushNamed(context, '/fs');
+              },
+            ),
+          ],
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          children: [
+            CircleAvatar(
+              radius: 50,
+              backgroundImage: AssetImage("assets/images/vice_doyen.jpg"),
+            ),
+            const SizedBox(height: 15),
+            Text(
+              nom,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              poste,
+              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+            ),
+            const SizedBox(height: 20),
+            Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 4,
+              child: Padding(
+                padding: const EdgeInsets.all(15.0),
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.email, color: Colors.blue),
+                      title: const Text("Email"),
+                      subtitle: Text(email),
+                    ),
+                    const Divider(),
+                    ListTile(
+                      leading: const Icon(Icons.phone, color: Colors.blue),
+                      title: const Text("Téléphone"),
+                      subtitle: Text(telephone),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const Spacer(),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue.shade700,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
                   ),
                 ),
                 child: const Text(
