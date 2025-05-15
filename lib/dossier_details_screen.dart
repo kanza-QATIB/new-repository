@@ -104,27 +104,34 @@ class DossierDetailsScreen extends StatelessWidget {
                     _buildDetailItem("CIN", dossier['cin']),
                     _buildDetailItem("SOM", dossier['som']),
                     _buildDetailItem("Établissement", dossier['etablissement']),
+                    _buildDetailItem(
+                      "Statut",
+                      dossier['statut'] ?? 'En attente',
+                    ),
                   ]),
                   SizedBox(height: 24),
                   _buildDetailSection(
                     "Pièces Jointes",
                     (dossier['pieces'] as List).map((piece) {
                       print('Piece data: $piece'); // Debug print for each piece
-                      final path = piece['path']?.toString() ?? '';
+                      final fileUrl = piece['fichier']?.toString() ?? '';
                       final type = piece['type']?.toString() ?? 'Document';
                       final fileName =
                           piece['filename']?.toString() ?? 'Document sans nom';
 
-                      return ListTile(
-                        leading: Icon(Icons.attach_file, color: primaryColor),
-                        title: Text(fileName),
-                        subtitle: Text(type),
-                        trailing: IconButton(
-                          icon: Icon(Icons.visibility, color: primaryColor),
-                          onPressed:
-                              path.isNotEmpty
-                                  ? () => _viewDocument(path, context)
-                                  : null,
+                      return Card(
+                        margin: EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          leading: Icon(Icons.attach_file, color: primaryColor),
+                          title: Text(fileName),
+                          subtitle: Text(type),
+                          trailing: IconButton(
+                            icon: Icon(Icons.visibility, color: primaryColor),
+                            onPressed:
+                                fileUrl.isNotEmpty
+                                    ? () => _viewDocument(fileUrl, context)
+                                    : null,
+                          ),
                         ),
                       );
                     }).toList(),

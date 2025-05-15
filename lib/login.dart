@@ -11,22 +11,66 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  String? emailError;
+  String? passwordError;
 
   void signIn() async {
-    final response = await Supabase.instance.client.auth.signInWithPassword(
-      email: emailController.text,
-      password: passwordController.text,
-    );
+    // Réinitialiser les erreurs
+    setState(() {
+      emailError = null;
+      passwordError = null;
+    });
 
-    if (response.user != null) {
-      Navigator.pushReplacement(
+    // Validation des champs
+    if (emailController.text.isEmpty) {
+      setState(() {
+        emailError = 'L\'email est requis';
+      });
+      return;
+    }
+
+    if (!RegExp(
+      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+    ).hasMatch(emailController.text)) {
+      setState(() {
+        emailError = 'Format d\'email invalide';
+      });
+      return;
+    }
+
+    if (passwordController.text.isEmpty) {
+      setState(() {
+        passwordError = 'Le mot de passe est requis';
+      });
+      return;
+    }
+
+    try {
+      final response = await Supabase.instance.client.auth.signInWithPassword(
+        email: emailController.text,
+        password: passwordController.text,
+      );
+
+      if (response.user != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => ViceDoyenProfileScreen()),
+        );
+      }
+    } on AuthException catch (e) {
+      setState(() {
+        if (e.message.contains('Invalid login credentials')) {
+          emailError = 'Email ou mot de passe incorrect';
+          passwordError = 'Email ou mot de passe incorrect';
+        } else {
+          emailError = e.message;
+        }
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(
         context,
-        MaterialPageRoute(builder: (context) => ViceDoyenProfileScreen()),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur de connexion')),
-      );
+      ).showSnackBar(SnackBar(content: Text('Une erreur est survenue: $e')));
     }
   }
 
@@ -105,11 +149,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ],
                     ),
-                    child: Icon(
-                      Icons.school,
-                      size: 60,
-                      color: primaryColor,
-                    ),
+                    child: Icon(Icons.school, size: 60, color: primaryColor),
                   ),
                   const SizedBox(height: 30),
                   Text(
@@ -180,17 +220,17 @@ class _LoginPageState extends State<LoginPage> {
                   TextButton(
                     onPressed: goToResetPasswordPage,
                     style: TextButton.styleFrom(
-                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
                     ),
                     child: Text(
                       "Mot de passe oublié ?",
-                      style: TextStyle(
-                        color: Colors.black54,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: Colors.black54, fontSize: 16),
                     ),
                   ),
                 ],
@@ -208,39 +248,68 @@ class _LoginPageState extends State<LoginPage> {
     required IconData icon,
     bool obscureText = false,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: TextField(
-        controller: controller,
-        obscureText: obscureText,
-        style: TextStyle(color: Colors.black87),
-        decoration: InputDecoration(
-          hintText: hintText,
-          hintStyle: TextStyle(color: Colors.grey),
-          prefixIcon: Icon(icon, color: Color(0xFF6C4AB6)),
-          filled: true,
-          fillColor: Colors.transparent,
-          contentPadding: EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-          enabledBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: Colors.transparent),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.8),
             borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
           ),
-          focusedBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: Color(0xFF6C4AB6), width: 2),
-            borderRadius: BorderRadius.circular(18),
+          child: TextField(
+            controller: controller,
+            obscureText: obscureText,
+            style: TextStyle(color: Colors.black87),
+            decoration: InputDecoration(
+              hintText: hintText,
+              hintStyle: TextStyle(color: Colors.grey),
+              prefixIcon: Icon(icon, color: Color(0xFF6C4AB6)),
+              filled: true,
+              fillColor: Colors.transparent,
+              contentPadding: EdgeInsets.symmetric(
+                vertical: 20,
+                horizontal: 20,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.transparent),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(
+                  color:
+                      (hintText == "Email" && emailError != null) ||
+                              (hintText == "Mot de passe" &&
+                                  passwordError != null)
+                          ? Colors.red
+                          : Color(0xFF6C4AB6),
+                  width: 2,
+                ),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.red, width: 2),
+                borderRadius: BorderRadius.circular(18),
+              ),
+            ),
           ),
         ),
-      ),
+        if ((hintText == "Email" && emailError != null) ||
+            (hintText == "Mot de passe" && passwordError != null))
+          Padding(
+            padding: const EdgeInsets.only(left: 16, top: 8),
+            child: Text(
+              hintText == "Email" ? emailError! : passwordError!,
+              style: TextStyle(color: Colors.red, fontSize: 12),
+            ),
+          ),
+      ],
     );
   }
 }

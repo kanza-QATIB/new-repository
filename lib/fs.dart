@@ -2,7 +2,6 @@ import 'package:app_st/ImpressionSoutenancePage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_datetime_picker_plus/flutter_datetime_picker_plus.dart'
     as picker;
-import 'package:uuid/uuid.dart';
 import '../soutenance.dart';
 import '../databaseservice.dart';
 
@@ -16,7 +15,6 @@ class FormulaireSoutenance extends StatefulWidget {
 
 class _FormulaireSoutenanceState extends State<FormulaireSoutenance> {
   final _formKey = GlobalKey<FormState>();
-  final _uuid = Uuid();
   final _dbService = DatabaseService();
 
   String? _nomProf, _lieuSoutenance, _jury1, _jury2, _jury3, _email;

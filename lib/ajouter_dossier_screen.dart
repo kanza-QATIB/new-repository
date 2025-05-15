@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AjouterDossierScreen extends StatefulWidget {
   @override
@@ -37,7 +38,6 @@ class _AjouterDossierScreenState extends State<AjouterDossierScreen> {
     },
     {"type": "CV détaillé", "fichier": ""},
     {"type": "Mémoire relatif à l'habilitation", "fichier": ""},
-    {"type": "Nouvelle pièce jointe", "fichier": ""},
   ];
 
   bool allFilesUploaded() {
@@ -45,17 +45,71 @@ class _AjouterDossierScreenState extends State<AjouterDossierScreen> {
   }
 
   Future<void> _pickFile(int index) async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      withData: true, // très important pour Web
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+    );
 
-    if (result != null && result.files.single.path != null) {
-      String filePath = result.files.single.path!;
-      setState(() {
-        piecesJointes[index]['fichier'] = filePath;
-      });
+    if (result != null && result.files.single.bytes != null) {
+      final file = result.files.single;
+      final fileExt = file.extension?.toLowerCase() ?? '';
+      final isAllowed = ['jpg', 'jpeg', 'png', 'pdf'].contains(fileExt);
+
+      if (!isAllowed) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Seuls les fichiers PDF ou images sont autorisés.'),
+          ),
+        );
+        return;
+      }
+
+      try {
+        final storageFileName =
+            '${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+        final storagePath = 'pieces-jointes/$storageFileName';
+
+        await Supabase.instance.client.storage
+            .from('pieces-jointes')
+            .uploadBinary(
+              storagePath,
+              file.bytes!, // on utilise les bytes ici
+              fileOptions: FileOptions(contentType: _getMimeType(fileExt)),
+            );
+
+        final fileUrl = Supabase.instance.client.storage
+            .from('pieces-jointes')
+            .getPublicUrl(storagePath);
+
+        setState(() {
+          piecesJointes[index]['fichier'] = fileUrl;
+          piecesJointes[index]['filename'] = file.name;
+        });
+      } catch (e) {
+        print('Erreur lors du téléchargement du fichier: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur lors du téléchargement du fichier')),
+        );
+      }
     }
   }
 
-  void _submitDossier() {
+  String _getMimeType(String extension) {
+    switch (extension) {
+      case 'pdf':
+        return 'application/pdf';
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      default:
+        return 'application/octet-stream';
+    }
+  }
+
+  void _submitDossier() async {
     if (!allFilesUploaded()) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Veuillez importer tous les fichiers requis.')),
@@ -63,21 +117,71 @@ class _AjouterDossierScreenState extends State<AjouterDossierScreen> {
       return;
     }
 
-    print("Titre du dossier : ${titreController.text}");
-    print("Pièces jointes :");
-    for (var piece in piecesJointes) {
-      print("${piece['type']} : ${piece['fichier']}");
+    if (!_formKey.currentState!.validate()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Veuillez remplir tous les champs obligatoires.'),
+        ),
+      );
+      return;
     }
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Dossier soumis avec succès !')));
+    _formKey.currentState!.save();
 
-    // TODO: Ajouter l'envoi au backend ici
+    try {
+      final dossierData = {
+        'nom': nom,
+        'prenom': prenom,
+        'cin': cin,
+        'som': som,
+        'etablissement': etablissement,
+        'statut': statut,
+        'pieces':
+            piecesJointes
+                .map(
+                  (piece) => {
+                    'type': piece['type'],
+                    'fichier': piece['fichier'],
+                    'filename': piece['filename'],
+                  },
+                )
+                .toList(),
+        'created_at': DateTime.now().toIso8601String(),
+      };
+
+      final response =
+          await Supabase.instance.client
+              .from('dossiers')
+              .insert(dossierData)
+              .select();
+
+      if (response != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Dossier ajouté avec succès !')));
+        Navigator.pop(context, true);
+      } else {
+        throw Exception('Erreur lors de l\'ajout du dossier');
+      }
+    } catch (e) {
+      print('Erreur lors de l\'ajout du dossier: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur lors de l\'ajout du dossier: $e')),
+      );
+    }
   }
 
+  /*************  ✨ Windsurf Command ⭐  *************/
+  /// Widget that displays a preview of a file to be uploaded.
+  ///
+  /// The preview shows the file name and a file icon.
+  ///
+  /// The [path] parameter is the full path of the file.
+  ///
+  /// Returns a [Container] widget with the preview.
+  /*******  fbdcb0d0-60d0-4930-8520-df57b35f0764  *******/
   Widget _buildFilePreview(String path) {
-    final fileName = path.split(RegExp(r'[\/\\]')).last;
+    final fileName = path.split('/').last;
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
@@ -105,14 +209,7 @@ class _AjouterDossierScreenState extends State<AjouterDossierScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          "Ajouter un Dossier",
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
+        title: Text("Ajouter un Dossier"),
         centerTitle: true,
         backgroundColor: primaryColor,
         elevation: 0,

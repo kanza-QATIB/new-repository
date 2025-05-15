@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dossier_details_screen.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
 
 class ListeDossiersScreen extends StatefulWidget {
   @override
@@ -19,6 +21,16 @@ class _ListeDossiersScreenState extends State<ListeDossiersScreen> {
   void initState() {
     super.initState();
     _chargerDossiers();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Rafraîchir la liste quand on revient de l'écran d'ajout
+    final result = ModalRoute.of(context)?.settings.arguments;
+    if (result == true) {
+      _chargerDossiers();
+    }
   }
 
   Future<void> _chargerDossiers() async {
@@ -211,22 +223,54 @@ class _ListeDossiersScreenState extends State<ListeDossiersScreen> {
                     "Pièces jointes: ${(dossier['pieces'] as List).length}",
                     style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
                   ),
-                  ElevatedButton.icon(
-                    onPressed: () => _showDossierDetails(dossier),
-                    icon: Icon(Icons.visibility, size: 18),
-                    label: Text("Voir détails"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
-                      foregroundColor: Colors.white,
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                    ),
+                  PopupMenuButton<String>(
+                    icon: Icon(Icons.more_vert, color: primaryColor),
+                    onSelected: (value) {
+                      switch (value) {
+                        case 'voir_details':
+                          _showDossierDetails(dossier);
+                          break;
+                        case 'modifier':
+                          _modifierDossier(dossier);
+                          break;
+                        case 'supprimer':
+                          _supprimerDossier(dossier);
+                          break;
+                      }
+                    },
+                    itemBuilder:
+                        (BuildContext context) => [
+                          PopupMenuItem<String>(
+                            value: 'voir_details',
+                            child: Row(
+                              children: [
+                                Icon(Icons.visibility, color: primaryColor),
+                                SizedBox(width: 8),
+                                Text('Voir détails'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'modifier',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit, color: primaryColor),
+                                SizedBox(width: 8),
+                                Text('Modifier'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'supprimer',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete, color: Colors.red),
+                                SizedBox(width: 8),
+                                Text('Supprimer'),
+                              ],
+                            ),
+                          ),
+                        ],
                   ),
                 ],
               ),
@@ -270,5 +314,467 @@ class _ListeDossiersScreenState extends State<ListeDossiersScreen> {
             child: DossierDetailsScreen(dossier: dossier),
           ),
     );
+  }
+
+  void _modifierDossier(Map<String, dynamic> dossier) {
+    final TextEditingController nomController = TextEditingController(
+      text: dossier['nom'],
+    );
+    final TextEditingController prenomController = TextEditingController(
+      text: dossier['prenom'],
+    );
+    final TextEditingController cinController = TextEditingController(
+      text: dossier['cin'],
+    );
+    final TextEditingController somController = TextEditingController(
+      text: dossier['som'],
+    );
+    final TextEditingController etablissementController = TextEditingController(
+      text: dossier['etablissement'],
+    );
+    final TextEditingController statutController = TextEditingController(
+      text: dossier['statut'],
+    );
+
+    // Copier la liste des pièces jointes pour la modification
+    List<Map<String, dynamic>> piecesJointes = List<Map<String, dynamic>>.from(
+      dossier['pieces'],
+    );
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => StatefulBuilder(
+            builder:
+                (context, setState) => AlertDialog(
+                  title: Text('Modifier le dossier'),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          controller: nomController,
+                          decoration: InputDecoration(
+                            labelText: 'Nom',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 12),
+                        TextField(
+                          controller: prenomController,
+                          decoration: InputDecoration(
+                            labelText: 'Prénom',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 12),
+                        TextField(
+                          controller: cinController,
+                          decoration: InputDecoration(
+                            labelText: 'CIN',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 12),
+                        TextField(
+                          controller: somController,
+                          decoration: InputDecoration(
+                            labelText: 'SOM',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 12),
+                        TextField(
+                          controller: etablissementController,
+                          decoration: InputDecoration(
+                            labelText: 'Établissement',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 12),
+                        TextField(
+                          controller: statutController,
+                          decoration: InputDecoration(
+                            labelText: 'Statut',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 20),
+                        Text(
+                          'Pièces Jointes',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: primaryColor,
+                          ),
+                        ),
+                        SizedBox(height: 12),
+                        ...piecesJointes.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final piece = entry.value;
+                          return Card(
+                            margin: EdgeInsets.only(bottom: 8),
+                            child: Padding(
+                              padding: EdgeInsets.all(8),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    piece['type'],
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(height: 8),
+                                  if (piece['fichier'] != null &&
+                                      piece['fichier'].toString().isNotEmpty)
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.attach_file,
+                                          size: 16,
+                                          color: primaryColor,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            piece['filename'] ?? 'Document',
+                                            style: TextStyle(fontSize: 12),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: Icon(
+                                            Icons.visibility,
+                                            size: 20,
+                                            color: primaryColor,
+                                          ),
+                                          onPressed:
+                                              () => _viewDocument(
+                                                piece['fichier'],
+                                                context,
+                                              ),
+                                        ),
+                                        IconButton(
+                                          icon: Icon(
+                                            Icons.edit,
+                                            size: 20,
+                                            color: primaryColor,
+                                          ),
+                                          onPressed: () async {
+                                            final result =
+                                                await FilePicker.platform
+                                                    .pickFiles();
+                                            if (result != null &&
+                                                result.files.single.path !=
+                                                    null) {
+                                              try {
+                                                final file = File(
+                                                  result.files.single.path!,
+                                                );
+                                                final fileExt =
+                                                    result.files.single.name
+                                                        .split('.')
+                                                        .last;
+                                                final fileName =
+                                                    '${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+                                                final filePath =
+                                                    'pieces_jointes/$fileName';
+
+                                                // Supprimer l'ancien fichier si existe
+                                                if (piece['fichier'] != null &&
+                                                    piece['fichier']
+                                                        .toString()
+                                                        .isNotEmpty) {
+                                                  final oldPath =
+                                                      piece['fichier']
+                                                          .toString()
+                                                          .split('/')
+                                                          .last;
+                                                  await Supabase
+                                                      .instance
+                                                      .client
+                                                      .storage
+                                                      .from('dossiers')
+                                                      .remove([
+                                                        'pieces_jointes/$oldPath',
+                                                      ]);
+                                                }
+
+                                                // Télécharger le nouveau fichier
+                                                await Supabase
+                                                    .instance
+                                                    .client
+                                                    .storage
+                                                    .from('dossiers')
+                                                    .uploadBinary(
+                                                      filePath,
+                                                      await file.readAsBytes(),
+                                                      fileOptions: FileOptions(
+                                                        contentType:
+                                                            'application/octet-stream',
+                                                      ),
+                                                    );
+
+                                                final fileUrl = Supabase
+                                                    .instance
+                                                    .client
+                                                    .storage
+                                                    .from('dossiers')
+                                                    .getPublicUrl(filePath);
+
+                                                setState(() {
+                                                  piecesJointes[index] = {
+                                                    ...piece,
+                                                    'fichier': fileUrl,
+                                                    'filename':
+                                                        result
+                                                            .files
+                                                            .single
+                                                            .name,
+                                                  };
+                                                });
+                                              } catch (e) {
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      'Erreur lors du téléchargement du fichier',
+                                                    ),
+                                                  ),
+                                                );
+                                              }
+                                            }
+                                          },
+                                        ),
+                                      ],
+                                    )
+                                  else
+                                    ElevatedButton.icon(
+                                      onPressed: () async {
+                                        final result =
+                                            await FilePicker.platform
+                                                .pickFiles();
+                                        if (result != null &&
+                                            result.files.single.path != null) {
+                                          try {
+                                            final file = File(
+                                              result.files.single.path!,
+                                            );
+                                            final fileExt =
+                                                result.files.single.name
+                                                    .split('.')
+                                                    .last;
+                                            final fileName =
+                                                '${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+                                            final filePath =
+                                                'pieces_jointes/$fileName';
+
+                                            await Supabase
+                                                .instance
+                                                .client
+                                                .storage
+                                                .from('dossiers')
+                                                .uploadBinary(
+                                                  filePath,
+                                                  await file.readAsBytes(),
+                                                  fileOptions: FileOptions(
+                                                    contentType:
+                                                        'application/octet-stream',
+                                                  ),
+                                                );
+
+                                            final fileUrl = Supabase
+                                                .instance
+                                                .client
+                                                .storage
+                                                .from('dossiers')
+                                                .getPublicUrl(filePath);
+
+                                            setState(() {
+                                              piecesJointes[index] = {
+                                                ...piece,
+                                                'fichier': fileUrl,
+                                                'filename':
+                                                    result.files.single.name,
+                                              };
+                                            });
+                                          } catch (e) {
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Erreur lors du téléchargement du fichier',
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      },
+                                      icon: Icon(Icons.upload_file),
+                                      label: Text('Ajouter un fichier'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: primaryColor,
+                                        foregroundColor: Colors.white,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ],
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('Annuler'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        try {
+                          // Mettre à jour les données dans Supabase
+                          await Supabase.instance.client
+                              .from('dossiers')
+                              .update({
+                                'nom': nomController.text,
+                                'prenom': prenomController.text,
+                                'cin': cinController.text,
+                                'som': somController.text,
+                                'etablissement': etablissementController.text,
+                                'statut': statutController.text,
+                                'pieces': piecesJointes,
+                              })
+                              .eq('id', dossier['id']);
+
+                          // Mettre à jour la liste locale
+                          setState(() {
+                            final index = dossiers.indexWhere(
+                              (d) => d['id'] == dossier['id'],
+                            );
+                            if (index != -1) {
+                              dossiers[index] = {
+                                ...dossiers[index],
+                                'nom': nomController.text,
+                                'prenom': prenomController.text,
+                                'cin': cinController.text,
+                                'som': somController.text,
+                                'etablissement': etablissementController.text,
+                                'statut': statutController.text,
+                                'pieces': piecesJointes,
+                              };
+                            }
+                          });
+
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Dossier modifié avec succès'),
+                            ),
+                          );
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Erreur lors de la modification du dossier: $e',
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text('Enregistrer'),
+                    ),
+                  ],
+                ),
+          ),
+    );
+  }
+
+  Future<void> _supprimerDossier(Map<String, dynamic> dossier) async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text('Confirmer la suppression'),
+            content: Text('Êtes-vous sûr de vouloir supprimer ce dossier ?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text('Annuler'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text('Supprimer', style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+    );
+
+    if (confirm == true) {
+      try {
+        await Supabase.instance.client
+            .from('dossiers')
+            .delete()
+            .eq('id', dossier['id']);
+
+        setState(() {
+          dossiers.removeWhere((d) => d['id'] == dossier['id']);
+        });
+
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Dossier supprimé avec succès')));
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur lors de la suppression du dossier')),
+        );
+      }
+    }
+  }
+
+  Future<void> _viewDocument(String? url, BuildContext context) async {
+    if (url == null || url.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Aucun fichier joint')));
+      return;
+    }
+
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Impossible d\'ouvrir le document')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur lors de l\'ouverture du document')),
+      );
+    }
   }
 }
