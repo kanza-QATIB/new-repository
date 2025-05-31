@@ -16,10 +16,12 @@ class _AjouterDossierScreenState extends State<AjouterDossierScreen> {
   String cin = '';
   String som = '';
   String etablissement = '';
-  String statut = '';
+  String statut = 'En attente';
+  final List<String> statutOptions = ['En attente', 'Accepté', 'Refusé'];
   final TextEditingController titreController = TextEditingController();
 
   final List<Map<String, String>> piecesJointes = [
+    {"type": "Photo professionnelle", "fichier": ""},
     {"type": "Demande manuscrite adressée au Doyen", "fichier": ""},
     {"type": "Autorisation du chef d'établissement d'origine", "fichier": ""},
     {
@@ -46,20 +48,28 @@ class _AjouterDossierScreenState extends State<AjouterDossierScreen> {
 
   Future<void> _pickFile(int index) async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
-      withData: true, // très important pour Web
+      withData: true,
       type: FileType.custom,
-      allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+      allowedExtensions:
+          index == 0 ? ['jpg', 'jpeg', 'png'] : ['jpg', 'jpeg', 'png', 'pdf'],
     );
 
     if (result != null && result.files.single.bytes != null) {
       final file = result.files.single;
       final fileExt = file.extension?.toLowerCase() ?? '';
-      final isAllowed = ['jpg', 'jpeg', 'png', 'pdf'].contains(fileExt);
+      final isAllowed =
+          index == 0
+              ? ['jpg', 'jpeg', 'png'].contains(fileExt)
+              : ['jpg', 'jpeg', 'png', 'pdf'].contains(fileExt);
 
       if (!isAllowed) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Seuls les fichiers PDF ou images sont autorisés.'),
+            content: Text(
+              index == 0
+                  ? 'Seuls les fichiers images (JPG, PNG) sont autorisés pour la photo professionnelle.'
+                  : 'Seuls les fichiers PDF ou images sont autorisés.',
+            ),
           ),
         );
         return;
@@ -74,7 +84,7 @@ class _AjouterDossierScreenState extends State<AjouterDossierScreen> {
             .from('pieces-jointes')
             .uploadBinary(
               storagePath,
-              file.bytes!, // on utilise les bytes ici
+              file.bytes!,
               fileOptions: FileOptions(contentType: _getMimeType(fileExt)),
             );
 
@@ -180,7 +190,7 @@ class _AjouterDossierScreenState extends State<AjouterDossierScreen> {
   ///
   /// Returns a [Container] widget with the preview.
   /*******  fbdcb0d0-60d0-4930-8520-df57b35f0764  *******/
-  Widget _buildFilePreview(String path) {
+  Widget _buildFilePreview(String path, int index) {
     final fileName = path.split('/').last;
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -191,7 +201,9 @@ class _AjouterDossierScreenState extends State<AjouterDossierScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.insert_drive_file, color: primaryColor),
+          index == 0
+              ? Icon(Icons.photo, color: primaryColor)
+              : Icon(Icons.insert_drive_file, color: primaryColor),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -200,6 +212,20 @@ class _AjouterDossierScreenState extends State<AjouterDossierScreen> {
               overflow: TextOverflow.ellipsis,
             ),
           ),
+          if (index ==
+              0) // Afficher la prévisualisation pour la photo professionnelle
+            Container(
+              width: 50,
+              height: 50,
+              margin: EdgeInsets.only(left: 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                image: DecorationImage(
+                  image: NetworkImage(path),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -248,7 +274,46 @@ class _AjouterDossierScreenState extends State<AjouterDossierScreen> {
                 _buildSectionCard(
                   title: "Informations Dossier",
                   children: [
-                    _buildTextField("Statut", (val) => statut = val ?? ''),
+                    DropdownButtonFormField<String>(
+                      value: statut,
+                      decoration: InputDecoration(
+                        labelText: "Statut",
+                        labelStyle: TextStyle(color: Colors.grey.shade700),
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.9),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.transparent),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: primaryColor, width: 2),
+                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
+                      ),
+                      items:
+                          statutOptions.map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          statut = newValue!;
+                        });
+                      },
+                      validator:
+                          (value) =>
+                              value == null ? 'Ce champ est obligatoire' : null,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -270,7 +335,7 @@ class _AjouterDossierScreenState extends State<AjouterDossierScreen> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            if (path.isNotEmpty) _buildFilePreview(path),
+                            if (path.isNotEmpty) _buildFilePreview(path, index),
                             const SizedBox(height: 8),
                             Container(
                               width: double.infinity,

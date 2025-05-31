@@ -1,5 +1,6 @@
 import 'package:app_st/ajouter_dossier_screen.dart';
 import 'package:app_st/liste_dossiers_screen.dart';
+import 'package:app_st/settings_screen.dart';
 import 'package:flutter/material.dart';
 
 class ViceDoyenProfileScreen extends StatelessWidget {
@@ -31,6 +32,17 @@ class ViceDoyenProfileScreen extends StatelessWidget {
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SettingsScreen()),
+              );
+            },
+          ),
+        ],
       ),
       drawer: Drawer(
         child: Container(
@@ -53,7 +65,7 @@ class ViceDoyenProfileScreen extends StatelessWidget {
                 ),
                 currentAccountPicture: const CircleAvatar(
                   radius: 35,
-                  backgroundImage: AssetImage("assets/images/vice_doyen.jpg"),
+                  backgroundImage: AssetImage("assets/images/dossier.jpg"),
                 ),
                 accountName: Text(
                   nom,
@@ -120,7 +132,7 @@ class ViceDoyenProfileScreen extends StatelessWidget {
             children: [
               const CircleAvatar(
                 radius: 50,
-                backgroundImage: AssetImage("assets/images/vice_doyen.jpg"),
+                backgroundImage: AssetImage("assets/images/dossier.jpg"),
               ),
               const SizedBox(height: 15),
               Text(

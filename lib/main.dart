@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '/liste_soutenances_screen.dart';
 import 'fs.dart';
+import 'ajouter_rapporteurs_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,12 +23,14 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       home: GetStartedPage(),
       routes: {
-        '/fs':
-            (context) =>
-                const FormulaireSoutenance(), // Route pour la page de soutenance
-
-        '/liste-soutenances': (context) => ListeSoutenances(), // Idem
-        // Ajoute ici toutes tes autres routes nécessaires
+        '/fs': (context) => const FormulaireSoutenance(),
+        '/liste-soutenances': (context) => ListeSoutenances(),
+        '/ajouter-rapporteurs': (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+          return AjouterRapporteursScreen(dossier: args);
+        },
       },
     );
   }

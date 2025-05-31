@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'email_service.dart';
 
 class DossierDetailsScreen extends StatelessWidget {
   final Map<String, dynamic> dossier;
@@ -52,9 +53,6 @@ class DossierDetailsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final primaryColor = Color(0xFF6C4AB6);
     final gradientColors = [Color(0xFFE0D5F7), Color(0xFFD3E5FA)];
-
-    // Debug print to see the pieces data
-    print('Dossier pieces data: ${dossier['pieces']}');
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.9,
@@ -113,7 +111,6 @@ class DossierDetailsScreen extends StatelessWidget {
                   _buildDetailSection(
                     "Pièces Jointes",
                     (dossier['pieces'] as List).map((piece) {
-                      print('Piece data: $piece'); // Debug print for each piece
                       final fileUrl = piece['fichier']?.toString() ?? '';
                       final type = piece['type']?.toString() ?? 'Document';
                       final fileName =

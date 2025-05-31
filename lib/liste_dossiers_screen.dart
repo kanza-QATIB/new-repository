@@ -4,6 +4,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'dossier_details_screen.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
+import 'ajouter_rapporteurs_screen.dart';
+import 'email_service.dart';
 
 class ListeDossiersScreen extends StatefulWidget {
   @override
@@ -14,8 +16,16 @@ class _ListeDossiersScreenState extends State<ListeDossiersScreen> {
   final primaryColor = Color(0xFF6C4AB6);
   final gradientColors = [Color(0xFFE0D5F7), Color(0xFFD3E5FA)];
   List<Map<String, dynamic>> dossiers = [];
+  List<Map<String, dynamic>> filteredDossiers = [];
   bool isLoading = true;
   String? errorMessage;
+  String selectedStatus = 'Tous';
+  final List<String> statusOptions = [
+    'Tous',
+    'En attente',
+    'Accepté',
+    'Refusé',
+  ];
 
   @override
   void initState() {
@@ -33,6 +43,19 @@ class _ListeDossiersScreenState extends State<ListeDossiersScreen> {
     }
   }
 
+  void _filterDossiers() {
+    setState(() {
+      if (selectedStatus == 'Tous') {
+        filteredDossiers = List.from(dossiers);
+      } else {
+        filteredDossiers =
+            dossiers
+                .where((dossier) => dossier['statut'] == selectedStatus)
+                .toList();
+      }
+    });
+  }
+
   Future<void> _chargerDossiers() async {
     try {
       print('Chargement des dossiers...');
@@ -46,6 +69,7 @@ class _ListeDossiersScreenState extends State<ListeDossiersScreen> {
       if (response != null) {
         setState(() {
           dossiers = List<Map<String, dynamic>>.from(response);
+          _filterDossiers();
           isLoading = false;
           errorMessage = null;
         });
@@ -84,6 +108,28 @@ class _ListeDossiersScreenState extends State<ListeDossiersScreen> {
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
         ),
         actions: [
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: DropdownButton<String>(
+              value: selectedStatus,
+              dropdownColor: primaryColor,
+              underline: SizedBox(),
+              style: TextStyle(color: Colors.white),
+              items:
+                  statusOptions.map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+              onChanged: (String? newValue) {
+                setState(() {
+                  selectedStatus = newValue!;
+                  _filterDossiers();
+                });
+              },
+            ),
+          ),
           IconButton(
             icon: Icon(Icons.refresh, color: Colors.white),
             onPressed: _chargerDossiers,
@@ -151,9 +197,9 @@ class _ListeDossiersScreenState extends State<ListeDossiersScreen> {
                   onRefresh: _chargerDossiers,
                   child: ListView.builder(
                     padding: EdgeInsets.all(16),
-                    itemCount: dossiers.length,
+                    itemCount: filteredDossiers.length,
                     itemBuilder: (context, index) {
-                      final dossier = dossiers[index];
+                      final dossier = filteredDossiers[index];
                       return _buildDossierCard(dossier);
                     },
                   ),
@@ -230,8 +276,25 @@ class _ListeDossiersScreenState extends State<ListeDossiersScreen> {
                         case 'voir_details':
                           _showDossierDetails(dossier);
                           break;
+                        case 'voir_rapporteurs':
+                          _showRapporteursDialog(dossier);
+                          break;
+                        case 'envoyer_aux_rapporteurs':
+                          _envoyerAuxRapporteurs(dossier);
+                          break;
                         case 'modifier':
                           _modifierDossier(dossier);
+                          break;
+                        case 'ajouter_rapporteurs':
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => AjouterRapporteursScreen(
+                                    dossier: dossier,
+                                  ),
+                            ),
+                          );
                           break;
                         case 'supprimer':
                           _supprimerDossier(dossier);
@@ -251,12 +314,42 @@ class _ListeDossiersScreenState extends State<ListeDossiersScreen> {
                             ),
                           ),
                           PopupMenuItem<String>(
+                            value: 'voir_rapporteurs',
+                            child: Row(
+                              children: [
+                                Icon(Icons.people, color: primaryColor),
+                                SizedBox(width: 8),
+                                Text('Voir Rapporteurs'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'envoyer_aux_rapporteurs',
+                            child: Row(
+                              children: [
+                                Icon(Icons.send, color: primaryColor),
+                                SizedBox(width: 8),
+                                Text('Envoyer aux Rapporteurs'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem<String>(
                             value: 'modifier',
                             child: Row(
                               children: [
                                 Icon(Icons.edit, color: primaryColor),
                                 SizedBox(width: 8),
                                 Text('Modifier'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'ajouter_rapporteurs',
+                            child: Row(
+                              children: [
+                                Icon(Icons.person_add, color: primaryColor),
+                                SizedBox(width: 8),
+                                Text('Ajouter des Rapporteurs'),
                               ],
                             ),
                           ),
@@ -316,6 +409,133 @@ class _ListeDossiersScreenState extends State<ListeDossiersScreen> {
     );
   }
 
+  Future<void> _pickFile(
+    int index,
+    Map<String, dynamic> piece,
+    StateSetter setState,
+  ) async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      withData: true,
+      type: FileType.custom,
+      allowedExtensions:
+          index == 0 ? ['jpg', 'jpeg', 'png'] : ['jpg', 'jpeg', 'png', 'pdf'],
+    );
+
+    if (result != null && result.files.single.bytes != null) {
+      final file = result.files.single;
+      final fileExt = file.extension?.toLowerCase() ?? '';
+      final isAllowed =
+          index == 0
+              ? ['jpg', 'jpeg', 'png'].contains(fileExt)
+              : ['jpg', 'jpeg', 'png', 'pdf'].contains(fileExt);
+
+      if (!isAllowed) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              index == 0
+                  ? 'Seuls les fichiers images (JPG, PNG) sont autorisés pour la photo professionnelle.'
+                  : 'Seuls les fichiers PDF ou images sont autorisés.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      try {
+        final storageFileName =
+            '${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+        final storagePath = 'pieces-jointes/$storageFileName';
+
+        // Supprimer l'ancien fichier si existe
+        if (piece['fichier'] != null &&
+            piece['fichier'].toString().isNotEmpty) {
+          final oldPath = piece['fichier'].toString().split('/').last;
+          await Supabase.instance.client.storage.from('dossiers').remove([
+            'pieces-jointes/$oldPath',
+          ]);
+        }
+
+        await Supabase.instance.client.storage
+            .from('dossiers')
+            .uploadBinary(
+              storagePath,
+              file.bytes!,
+              fileOptions: FileOptions(contentType: _getMimeType(fileExt)),
+            );
+
+        final fileUrl = Supabase.instance.client.storage
+            .from('dossiers')
+            .getPublicUrl(storagePath);
+
+        setState(() {
+          piece['fichier'] = fileUrl;
+          piece['filename'] = file.name;
+        });
+      } catch (e) {
+        print('Erreur lors du téléchargement du fichier: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur lors du téléchargement du fichier')),
+        );
+      }
+    }
+  }
+
+  String _getMimeType(String extension) {
+    switch (extension) {
+      case 'pdf':
+        return 'application/pdf';
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      default:
+        return 'application/octet-stream';
+    }
+  }
+
+  Widget _buildFilePreview(String path, int index) {
+    final fileName = path.split('/').last;
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        children: [
+          index == 0
+              ? Icon(Icons.photo, color: primaryColor)
+              : Icon(Icons.insert_drive_file, color: primaryColor),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              fileName,
+              style: TextStyle(fontSize: 14),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (index ==
+              0) // Afficher la prévisualisation pour la photo professionnelle
+            Container(
+              width: 50,
+              height: 50,
+              margin: EdgeInsets.only(left: 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                image: DecorationImage(
+                  image: NetworkImage(path),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   void _modifierDossier(Map<String, dynamic> dossier) {
     final TextEditingController nomController = TextEditingController(
       text: dossier['nom'],
@@ -332,9 +552,8 @@ class _ListeDossiersScreenState extends State<ListeDossiersScreen> {
     final TextEditingController etablissementController = TextEditingController(
       text: dossier['etablissement'],
     );
-    final TextEditingController statutController = TextEditingController(
-      text: dossier['statut'],
-    );
+    String selectedStatus = dossier['statut'] ?? 'En attente';
+    final List<String> statusOptions = ['En attente', 'Accepté', 'Refusé'];
 
     // Copier la liste des pièces jointes pour la modification
     List<Map<String, dynamic>> piecesJointes = List<Map<String, dynamic>>.from(
@@ -402,14 +621,26 @@ class _ListeDossiersScreenState extends State<ListeDossiersScreen> {
                           ),
                         ),
                         SizedBox(height: 12),
-                        TextField(
-                          controller: statutController,
+                        DropdownButtonFormField<String>(
+                          value: selectedStatus,
                           decoration: InputDecoration(
                             labelText: 'Statut',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
+                          items:
+                              statusOptions.map((String value) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(value),
+                                );
+                              }).toList(),
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              selectedStatus = newValue!;
+                            });
+                          },
                         ),
                         SizedBox(height: 20),
                         Text(
@@ -442,17 +673,10 @@ class _ListeDossiersScreenState extends State<ListeDossiersScreen> {
                                       piece['fichier'].toString().isNotEmpty)
                                     Row(
                                       children: [
-                                        Icon(
-                                          Icons.attach_file,
-                                          size: 16,
-                                          color: primaryColor,
-                                        ),
-                                        SizedBox(width: 8),
                                         Expanded(
-                                          child: Text(
-                                            piece['filename'] ?? 'Document',
-                                            style: TextStyle(fontSize: 12),
-                                            overflow: TextOverflow.ellipsis,
+                                          child: _buildFilePreview(
+                                            piece['fichier'],
+                                            index,
                                           ),
                                         ),
                                         IconButton(
@@ -473,158 +697,20 @@ class _ListeDossiersScreenState extends State<ListeDossiersScreen> {
                                             size: 20,
                                             color: primaryColor,
                                           ),
-                                          onPressed: () async {
-                                            final result =
-                                                await FilePicker.platform
-                                                    .pickFiles();
-                                            if (result != null &&
-                                                result.files.single.path !=
-                                                    null) {
-                                              try {
-                                                final file = File(
-                                                  result.files.single.path!,
-                                                );
-                                                final fileExt =
-                                                    result.files.single.name
-                                                        .split('.')
-                                                        .last;
-                                                final fileName =
-                                                    '${DateTime.now().millisecondsSinceEpoch}.$fileExt';
-                                                final filePath =
-                                                    'pieces_jointes/$fileName';
-
-                                                // Supprimer l'ancien fichier si existe
-                                                if (piece['fichier'] != null &&
-                                                    piece['fichier']
-                                                        .toString()
-                                                        .isNotEmpty) {
-                                                  final oldPath =
-                                                      piece['fichier']
-                                                          .toString()
-                                                          .split('/')
-                                                          .last;
-                                                  await Supabase
-                                                      .instance
-                                                      .client
-                                                      .storage
-                                                      .from('dossiers')
-                                                      .remove([
-                                                        'pieces_jointes/$oldPath',
-                                                      ]);
-                                                }
-
-                                                // Télécharger le nouveau fichier
-                                                await Supabase
-                                                    .instance
-                                                    .client
-                                                    .storage
-                                                    .from('dossiers')
-                                                    .uploadBinary(
-                                                      filePath,
-                                                      await file.readAsBytes(),
-                                                      fileOptions: FileOptions(
-                                                        contentType:
-                                                            'application/octet-stream',
-                                                      ),
-                                                    );
-
-                                                final fileUrl = Supabase
-                                                    .instance
-                                                    .client
-                                                    .storage
-                                                    .from('dossiers')
-                                                    .getPublicUrl(filePath);
-
-                                                setState(() {
-                                                  piecesJointes[index] = {
-                                                    ...piece,
-                                                    'fichier': fileUrl,
-                                                    'filename':
-                                                        result
-                                                            .files
-                                                            .single
-                                                            .name,
-                                                  };
-                                                });
-                                              } catch (e) {
-                                                ScaffoldMessenger.of(
-                                                  context,
-                                                ).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text(
-                                                      'Erreur lors du téléchargement du fichier',
-                                                    ),
-                                                  ),
-                                                );
-                                              }
-                                            }
-                                          },
+                                          onPressed:
+                                              () => _pickFile(
+                                                index,
+                                                piece,
+                                                setState,
+                                              ),
                                         ),
                                       ],
                                     )
                                   else
                                     ElevatedButton.icon(
-                                      onPressed: () async {
-                                        final result =
-                                            await FilePicker.platform
-                                                .pickFiles();
-                                        if (result != null &&
-                                            result.files.single.path != null) {
-                                          try {
-                                            final file = File(
-                                              result.files.single.path!,
-                                            );
-                                            final fileExt =
-                                                result.files.single.name
-                                                    .split('.')
-                                                    .last;
-                                            final fileName =
-                                                '${DateTime.now().millisecondsSinceEpoch}.$fileExt';
-                                            final filePath =
-                                                'pieces_jointes/$fileName';
-
-                                            await Supabase
-                                                .instance
-                                                .client
-                                                .storage
-                                                .from('dossiers')
-                                                .uploadBinary(
-                                                  filePath,
-                                                  await file.readAsBytes(),
-                                                  fileOptions: FileOptions(
-                                                    contentType:
-                                                        'application/octet-stream',
-                                                  ),
-                                                );
-
-                                            final fileUrl = Supabase
-                                                .instance
-                                                .client
-                                                .storage
-                                                .from('dossiers')
-                                                .getPublicUrl(filePath);
-
-                                            setState(() {
-                                              piecesJointes[index] = {
-                                                ...piece,
-                                                'fichier': fileUrl,
-                                                'filename':
-                                                    result.files.single.name,
-                                              };
-                                            });
-                                          } catch (e) {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  'Erreur lors du téléchargement du fichier',
-                                                ),
-                                              ),
-                                            );
-                                          }
-                                        }
-                                      },
+                                      onPressed:
+                                          () =>
+                                              _pickFile(index, piece, setState),
                                       icon: Icon(Icons.upload_file),
                                       label: Text('Ajouter un fichier'),
                                       style: ElevatedButton.styleFrom(
@@ -657,7 +743,7 @@ class _ListeDossiersScreenState extends State<ListeDossiersScreen> {
                                 'cin': cinController.text,
                                 'som': somController.text,
                                 'etablissement': etablissementController.text,
-                                'statut': statutController.text,
+                                'statut': selectedStatus,
                                 'pieces': piecesJointes,
                               })
                               .eq('id', dossier['id']);
@@ -675,7 +761,7 @@ class _ListeDossiersScreenState extends State<ListeDossiersScreen> {
                                 'cin': cinController.text,
                                 'som': somController.text,
                                 'etablissement': etablissementController.text,
-                                'statut': statutController.text,
+                                'statut': selectedStatus,
                                 'pieces': piecesJointes,
                               };
                             }
@@ -775,6 +861,69 @@ class _ListeDossiersScreenState extends State<ListeDossiersScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erreur lors de l\'ouverture du document')),
       );
+    }
+  }
+
+  void _showRapporteursDialog(Map<String, dynamic> dossier) async {
+    try {
+      final response = await Supabase.instance.client
+          .from('rapporteurs')
+          .select()
+          .eq('dossier_id', dossier['id']);
+
+      if (response == null || response.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Aucun rapporteur assigné à ce dossier')),
+        );
+        return;
+      }
+
+      showDialog(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              title: Text('Rapporteurs assignés'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children:
+                      response.map<Widget>((rapporteur) {
+                        return ListTile(
+                          title: Text(
+                            '${rapporteur['nom']} ${rapporteur['prenom']}',
+                          ),
+                          subtitle: Text(rapporteur['email'] ?? ''),
+                        );
+                      }).toList(),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Fermer'),
+                ),
+              ],
+            ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur lors du chargement des rapporteurs: $e'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _envoyerAuxRapporteurs(Map<String, dynamic> dossier) async {
+    try {
+      await EmailService.sendEmailToRapporteurs(dossier);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Email préparé pour les rapporteurs')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erreur: ${e.toString()}')));
     }
   }
 }
