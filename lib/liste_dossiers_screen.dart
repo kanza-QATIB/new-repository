@@ -208,6 +208,67 @@ class _ListeDossiersScreenState extends State<ListeDossiersScreen> {
     );
   }
 
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Accepté':
+        return Colors.green;
+      case 'Refusé':
+        return Colors.red;
+      default:
+        return Colors.orange;
+    }
+  }
+
+  Future<void> _updateDossierStatus(
+    Map<String, dynamic> dossier,
+    String newStatus,
+  ) async {
+    try {
+      await Supabase.instance.client
+          .from('dossiers')
+          .update({'statut': newStatus})
+          .eq('id', dossier['id']);
+
+      setState(() {
+        final index = dossiers.indexWhere((d) => d['id'] == dossier['id']);
+        if (index != -1) {
+          dossiers[index]['statut'] = newStatus;
+          _filterDossiers();
+        }
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Statut mis à jour avec succès'),
+          backgroundColor: _getStatusColor(newStatus),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur lors de la mise à jour du statut'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Widget _buildStatusBadge(String status) {
+    final color = _getStatusColor(status);
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(color: color, fontWeight: FontWeight.w500),
+      ),
+    );
+  }
+
   Widget _buildDossierCard(Map<String, dynamic> dossier) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -236,22 +297,7 @@ class _ListeDossiersScreenState extends State<ListeDossiersScreen> {
                       ),
                     ),
                   ),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: primaryColor.withAlpha(26), // 0.1 opacity = 26/255
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      dossier['statut'] ?? 'En attente',
-                      style: TextStyle(
-                        color: primaryColor.withAlpha(
-                          77,
-                        ), // 0.3 opacity = 77/255
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
+                  _buildStatusBadge(dossier['statut'] ?? 'En attente'),
                 ],
               ),
               SizedBox(height: 12),
@@ -295,6 +341,12 @@ class _ListeDossiersScreenState extends State<ListeDossiersScreen> {
                                   ),
                             ),
                           );
+                          break;
+                        case 'accepter':
+                          _updateDossierStatus(dossier, 'Accepté');
+                          break;
+                        case 'refuser':
+                          _updateDossierStatus(dossier, 'Refusé');
                           break;
                         case 'supprimer':
                           _supprimerDossier(dossier);
@@ -350,6 +402,26 @@ class _ListeDossiersScreenState extends State<ListeDossiersScreen> {
                                 Icon(Icons.person_add, color: primaryColor),
                                 SizedBox(width: 8),
                                 Text('Ajouter des Rapporteurs'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'accepter',
+                            child: Row(
+                              children: [
+                                Icon(Icons.check_circle, color: Colors.green),
+                                SizedBox(width: 8),
+                                Text('Accepter'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'refuser',
+                            child: Row(
+                              children: [
+                                Icon(Icons.cancel, color: Colors.red),
+                                SizedBox(width: 8),
+                                Text('Refuser'),
                               ],
                             ),
                           ),

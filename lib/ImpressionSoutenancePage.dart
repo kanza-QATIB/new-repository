@@ -44,7 +44,9 @@ class ImpressionSoutenancePage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => AvisSoutenancePdfPage(soutenance: soutenance),
+                        builder:
+                            (_) =>
+                                AvisSoutenancePdfPage(soutenance: soutenance),
                       ),
                     );
                   },
@@ -55,12 +57,7 @@ class ImpressionSoutenancePage extends StatelessWidget {
                   context,
                   text: "Imprimer lettre d'invitation jury",
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => InvitationJuryPdfPage(soutenance: soutenance),
-                      ),
-                    );
+                    _showJurySelectionDialog(context, soutenance);
                   },
                   icon: Icons.picture_as_pdf,
                 ),
@@ -72,8 +69,98 @@ class ImpressionSoutenancePage extends StatelessWidget {
     );
   }
 
-  Widget _buildStyledButton(BuildContext context,
-      {required String text, required VoidCallback onTap, required IconData icon}) {
+  void _showJurySelectionDialog(BuildContext context, Soutenance soutenance) {
+    final List<Map<String, String?>> juryMembers = [
+      if (soutenance.jury1 != null && soutenance.jury1!.isNotEmpty)
+        {
+          'name': soutenance.jury1,
+          'role': soutenance.roleJury1,
+          'etablissement': soutenance.etablissementJury1,
+        },
+      if (soutenance.jury2 != null && soutenance.jury2!.isNotEmpty)
+        {
+          'name': soutenance.jury2,
+          'role': soutenance.roleJury2,
+          'etablissement': soutenance.etablissementJury2,
+        },
+      if (soutenance.jury3 != null && soutenance.jury3!.isNotEmpty)
+        {
+          'name': soutenance.jury3,
+          'role': soutenance.roleJury3,
+          'etablissement': soutenance.etablissementJury3,
+        },
+      if (soutenance.jury4 != null && soutenance.jury4!.isNotEmpty)
+        {
+          'name': soutenance.jury4,
+          'role': soutenance.roleJury4,
+          'etablissement': soutenance.etablissementJury4,
+        },
+    ];
+
+    if (juryMembers.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Aucun membre du jury trouvé pour cette soutenance.'),
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Text('Sélectionner un membre du jury'),
+          content: Container(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: juryMembers.length,
+              itemBuilder: (BuildContext context, int index) {
+                final juryMember = juryMembers[index];
+                return ListTile(
+                  title: Text(juryMember['name'] ?? 'N/A'),
+                  subtitle: Text(juryMember['role'] ?? 'N/A'),
+                  onTap: () {
+                    Navigator.pop(dialogContext); // Close the dialog
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (_) => InvitationJuryPdfPage(
+                              juryName: juryMember['name']!,
+                              juryRole: juryMember['role']!,
+                              juryEtablissement: juryMember['etablissement']!,
+                              professorName: soutenance.nomProfesseur,
+                              defenseLocation: soutenance.lieuSoutenance,
+                              defenseDate: soutenance.dateSoutenance,
+                            ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext); // Close the dialog
+              },
+              child: Text('Annuler'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildStyledButton(
+    BuildContext context, {
+    required String text,
+    required VoidCallback onTap,
+    required IconData icon,
+  }) {
     return SizedBox(
       width: double.infinity,
       height: 55,
